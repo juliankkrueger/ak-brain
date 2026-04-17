@@ -51,9 +51,10 @@ export function Login() {
                 required
                 autoComplete="email"
                 placeholder="name@agenturkrueger.de"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/10 bg-white/8
-                  text-white placeholder:text-white/30 focus:outline-none focus:ring-2
+                className="w-full px-4 py-2.5 rounded-lg border border-white/20 text-white
+                  placeholder:text-white/30 focus:outline-none focus:ring-2
                   focus:ring-brand-cream/30 focus:border-brand-cream/40 transition-all"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               />
             </div>
 
@@ -66,9 +67,10 @@ export function Login() {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/10 bg-white/8
-                  text-white placeholder:text-white/30 focus:outline-none focus:ring-2
+                className="w-full px-4 py-2.5 rounded-lg border border-white/20 text-white
+                  placeholder:text-white/30 focus:outline-none focus:ring-2
                   focus:ring-brand-cream/30 focus:border-brand-cream/40 transition-all"
+                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               />
             </div>
 

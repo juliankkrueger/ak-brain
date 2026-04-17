@@ -59,3 +59,30 @@ CREATE TABLE IF NOT EXISTS kpis (
 
 CREATE INDEX IF NOT EXISTS idx_kpis_customer ON kpis(customer_id);
 CREATE INDEX IF NOT EXISTS idx_kpis_period ON kpis(year, month);
+
+CREATE TABLE IF NOT EXISTS applicants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
+  first_name VARCHAR(100) NOT NULL DEFAULT '',
+  last_name VARCHAR(100) NOT NULL DEFAULT '',
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  position VARCHAR(255),
+  source VARCHAR(100) DEFAULT 'webhook',
+  status VARCHAR(50) NOT NULL DEFAULT 'offen'
+    CHECK (status IN ('offen', 'kontaktiert', 'eingestellt', 'disqualifiziert')),
+  notes TEXT,
+  raw_data JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_applicants_customer ON applicants(customer_id);
+CREATE INDEX IF NOT EXISTS idx_applicants_status ON applicants(status);
+
+CREATE TABLE IF NOT EXISTS webhook_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  token VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL DEFAULT 'Standard',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

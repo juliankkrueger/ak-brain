@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Customers } from './pages/Customers'
 import { CustomerDetail } from './pages/CustomerDetail'
 import { Users } from './pages/Users'
+import { Applicants } from './pages/Applicants'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -43,6 +44,9 @@ export default function App() {
         } />
         <Route path="/kunden/:id" element={
           <RequireAuth><CustomerDetail /></RequireAuth>
+        } />
+        <Route path="/bewerber" element={
+          <RequireAuth><Applicants /></RequireAuth>
         } />
         <Route path="/benutzer" element={
           <RequireAuth><Users /></RequireAuth>

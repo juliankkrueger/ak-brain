@@ -47,11 +47,15 @@ app.use('/api/', rateLimit({
   message: { error: 'Zu viele Anfragen. Bitte warten.' },
 }));
 
+// Webhook (no auth — token-based)
+app.use('/api/webhooks', require('./routes/webhooks'));
+
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/kpis', require('./routes/kpis'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/applicants', require('./routes/applicants'));
 
 // Health check (no auth needed)
 app.get('/health', (_req, res) => {
@@ -76,6 +80,17 @@ async function cleanExpiredSessions() {
   }
 }
 
+async function ensureWebhookToken() {
+  const { rows } = await pool.query('SELECT COUNT(*) FROM webhook_tokens');
+  if (parseInt(rows[0].count) > 0) return;
+  const token = require('crypto').randomBytes(32).toString('hex');
+  await pool.query(
+    `INSERT INTO webhook_tokens (token, name) VALUES ($1, 'Standard')`,
+    [token]
+  );
+  console.log(`Webhook-Token generiert: ${token}`);
+}
+
 async function seedAdminIfEmpty() {
   const { rows } = await pool.query('SELECT COUNT(*) FROM users');
   if (parseInt(rows[0].count) > 0) return;
@@ -92,6 +107,7 @@ async function seedAdminIfEmpty() {
 initSchema()
   .then(async () => {
     await seedAdminIfEmpty();
+    await ensureWebhookToken();
     await cleanExpiredSessions();
     // Clean expired sessions every hour
     setInterval(cleanExpiredSessions, 60 * 60 * 1000);
