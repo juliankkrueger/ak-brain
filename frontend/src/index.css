@@ -10,6 +10,14 @@
   h1, h2, h3 {
     @apply font-serif;
   }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px rgba(20, 32, 64, 0.95) inset !important;
+    -webkit-text-fill-color: white !important;
+    caret-color: white;
+  }
 }
 
 @layer utilities {

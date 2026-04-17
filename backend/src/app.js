@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const pool = require('./db/pool');
 const { initSchema } = require('./db/init');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -75,8 +76,22 @@ async function cleanExpiredSessions() {
   }
 }
 
+async function seedAdminIfEmpty() {
+  const { rows } = await pool.query('SELECT COUNT(*) FROM users');
+  if (parseInt(rows[0].count) > 0) return;
+  const email = process.env.SEED_EMAIL || 'j.krueger@agenturkrueger-digital.de';
+  const password = process.env.SEED_PASSWORD || 'Krueger2026!';
+  const hash = await bcrypt.hash(password, 12);
+  await pool.query(
+    `INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, 'admin')`,
+    ['Julian Krüger', email, hash]
+  );
+  console.log(`Admin-User angelegt: ${email}`);
+}
+
 initSchema()
   .then(async () => {
+    await seedAdminIfEmpty();
     await cleanExpiredSessions();
     // Clean expired sessions every hour
     setInterval(cleanExpiredSessions, 60 * 60 * 1000);
