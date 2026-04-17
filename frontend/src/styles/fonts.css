@@ -1,0 +1,63 @@
+@font-face {
+  font-family: 'South Korea Serif';
+  src: url('/fonts/South Korea Serif/south-korea-serif.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RNS Sisma';
+  src: url('/fonts/RNS Sisma/RNSSisma-Thin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RNS Sisma';
+  src: url('/fonts/RNS Sisma/RNSSisma-ExtraLight.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RNS Sisma';
+  src: url('/fonts/RNS Sisma/RNSSisma-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RNS Sisma';
+  src: url('/fonts/RNS Sisma/RNSSisma-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RNS Sisma';
+  src: url('/fonts/RNS Sisma/RNSSisma-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RNS Sisma';
+  src: url('/fonts/RNS Sisma/RNSSisma-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RNS Sisma';
+  src: url('/fonts/RNS Sisma/RNSSisma-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
