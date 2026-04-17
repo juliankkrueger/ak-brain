@@ -86,3 +86,17 @@ CREATE TABLE IF NOT EXISTS webhook_tokens (
   name VARCHAR(100) NOT NULL DEFAULT 'Standard',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS brain_files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  folder VARCHAR(100) NOT NULL,
+  filename VARCHAR(255) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  has_todos BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(folder, filename)
+);
+
+CREATE INDEX IF NOT EXISTS idx_brain_folder ON brain_files(folder);

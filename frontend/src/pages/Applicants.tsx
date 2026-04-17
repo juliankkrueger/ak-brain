@@ -20,6 +20,11 @@ interface Applicant {
   created_at: string
 }
 
+interface Customer {
+  id: string
+  name: string
+}
+
 interface Stats {
   byStatus: { status: string; count: number }[]
   monthly: { year: number; month: number; count: number }[]
@@ -36,6 +41,9 @@ const STATUS_CONFIG: Record<Status, { label: string; color: string; bg: string; 
 }
 
 const MONTH_NAMES = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
+
+const inputClass = `w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm
+  text-brand-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/20`
 
 function Initials({ name }: { name: string }) {
   const parts = name.trim().split(' ')
@@ -77,16 +85,209 @@ function StatusSelect({ value, onChange }: { value: Status; onChange: (s: Status
   )
 }
 
+interface ApplicantFormData {
+  first_name: string
+  last_name: string
+  email: string
+  phone: string
+  position: string
+  customer_id: string
+  status: Status
+  notes: string
+}
+
+const emptyForm = (): ApplicantFormData => ({
+  first_name: '', last_name: '', email: '', phone: '',
+  position: '', customer_id: '', status: 'offen', notes: '',
+})
+
+interface CreateModalProps {
+  customers: Customer[]
+  onClose: () => void
+  onCreated: (a: Applicant) => void
+}
+
+function CreateModal({ customers, onClose, onCreated }: CreateModalProps) {
+  const [form, setForm] = useState<ApplicantFormData>(emptyForm())
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const set = (field: keyof ApplicantFormData, val: string) =>
+    setForm(prev => ({ ...prev, [field]: val }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.first_name.trim() && !form.last_name.trim()) {
+      setError('Mindestens Vor- oder Nachname erforderlich')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const created = await api.post<Applicant>('/applicants', {
+        ...form,
+        customer_id: form.customer_id || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        notes: form.notes || null,
+      })
+      onCreated(created)
+      onClose()
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Speichern')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-serif text-xl text-brand-blue">Bewerber anlegen</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Vorname</label>
+              <input className={inputClass} value={form.first_name}
+                onChange={e => set('first_name', e.target.value)} placeholder="Max" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Nachname</label>
+              <input className={inputClass} value={form.last_name}
+                onChange={e => set('last_name', e.target.value)} placeholder="Mustermann" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Stelle / Position</label>
+            <input className={inputClass} value={form.position}
+              onChange={e => set('position', e.target.value)} placeholder="z.B. Pflegefachkraft" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">E-Mail</label>
+              <input type="email" className={inputClass} value={form.email}
+                onChange={e => set('email', e.target.value)} placeholder="max@example.de" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Telefon</label>
+              <input className={inputClass} value={form.phone}
+                onChange={e => set('phone', e.target.value)} placeholder="0151 …" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Kunde</label>
+              <select className={inputClass} value={form.customer_id}
+                onChange={e => set('customer_id', e.target.value)}>
+                <option value="">— Nicht zugeordnet</option>
+                {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+              <select className={inputClass} value={form.status}
+                onChange={e => set('status', e.target.value as Status)}>
+                {(Object.keys(STATUS_CONFIG) as Status[]).map(s => (
+                  <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Notizen</label>
+            <textarea className={`${inputClass} resize-none`} rows={3} value={form.notes}
+              onChange={e => set('notes', e.target.value)} placeholder="Optionale Anmerkungen …" />
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <div className="flex justify-end gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-brand-dark rounded-lg hover:bg-gray-50 transition-colors">
+              Abbrechen
+            </button>
+            <button type="submit" disabled={saving}
+              className="px-5 py-2 rounded-lg bg-brand-blue text-white text-sm font-medium
+                hover:bg-brand-navy transition-colors disabled:opacity-50">
+              {saving ? 'Speichern …' : 'Anlegen'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 interface DetailDrawerProps {
   applicant: Applicant | null
+  customers: Customer[]
   onClose: () => void
   onStatusChange: (id: string, status: Status) => void
   onDelete: (id: string) => void
+  onUpdated: (a: Applicant) => void
   isAdmin: boolean
 }
 
-function DetailDrawer({ applicant, onClose, onStatusChange, onDelete, isAdmin: adminUser }: DetailDrawerProps) {
+function DetailDrawer({ applicant, customers, onClose, onStatusChange, onDelete, onUpdated, isAdmin: adminUser }: DetailDrawerProps) {
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState<ApplicantFormData>(emptyForm())
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (applicant) {
+      setForm({
+        first_name: applicant.first_name,
+        last_name: applicant.last_name,
+        email: applicant.email || '',
+        phone: applicant.phone || '',
+        position: applicant.position || '',
+        customer_id: applicant.customer_id || '',
+        status: applicant.status,
+        notes: applicant.notes || '',
+      })
+      setEditing(false)
+    }
+  }, [applicant])
+
   if (!applicant) return null
+
+  const setField = (field: keyof ApplicantFormData, val: string) =>
+    setForm(prev => ({ ...prev, [field]: val }))
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const updated = await api.put<Applicant>(`/applicants/${applicant.id}`, {
+        ...form,
+        customer_id: form.customer_id || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        notes: form.notes || null,
+        status: form.status,
+      })
+      onUpdated(updated)
+      onStatusChange(applicant.id, form.status)
+      setEditing(false)
+    } catch {
+      // keep editing
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const cfg = STATUS_CONFIG[applicant.status]
   const fullName = `${applicant.first_name} ${applicant.last_name}`.trim()
 
@@ -102,61 +303,143 @@ function DetailDrawer({ applicant, onClose, onStatusChange, onDelete, isAdmin: a
               <p className="text-sm text-gray-500 mt-0.5">{applicant.position || 'Keine Stelle angegeben'}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 mt-1">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2 mt-1">
+            {adminUser && !editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs text-brand-blue hover:underline font-medium"
+              >
+                Bearbeiten
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <div className="px-6 py-5 space-y-5 flex-1">
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Status</p>
-            <div className="flex items-center gap-3">
-              <StatusBadge status={applicant.status} />
-              <StatusSelect
-                value={applicant.status}
-                onChange={s => onStatusChange(applicant.id, s)}
-              />
+        {editing ? (
+          <div className="px-6 py-5 space-y-4 flex-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Vorname</label>
+                <input className={inputClass} value={form.first_name}
+                  onChange={e => setField('first_name', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Nachname</label>
+                <input className={inputClass} value={form.last_name}
+                  onChange={e => setField('last_name', e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Position</label>
+              <input className={inputClass} value={form.position}
+                onChange={e => setField('position', e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">E-Mail</label>
+                <input type="email" className={inputClass} value={form.email}
+                  onChange={e => setField('email', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Telefon</label>
+                <input className={inputClass} value={form.phone}
+                  onChange={e => setField('phone', e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Kunde</label>
+                <select className={inputClass} value={form.customer_id}
+                  onChange={e => setField('customer_id', e.target.value)}>
+                  <option value="">— Nicht zugeordnet</option>
+                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Status</label>
+                <select className={inputClass} value={form.status}
+                  onChange={e => setField('status', e.target.value as Status)}>
+                  {(Object.keys(STATUS_CONFIG) as Status[]).map(s => (
+                    <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Notizen</label>
+              <textarea className={`${inputClass} resize-none`} rows={4} value={form.notes}
+                onChange={e => setField('notes', e.target.value)} />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={handleSave} disabled={saving}
+                className="px-5 py-2 rounded-lg bg-brand-blue text-white text-sm font-medium
+                  hover:bg-brand-navy transition-colors disabled:opacity-50">
+                {saving ? 'Speichern …' : 'Speichern'}
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-brand-dark rounded-lg hover:bg-gray-50">
+                Abbrechen
+              </button>
             </div>
           </div>
+        ) : (
+          <div className="px-6 py-5 space-y-5 flex-1">
+            <div>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Status</p>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={applicant.status} />
+                <StatusSelect
+                  value={applicant.status}
+                  onChange={s => onStatusChange(applicant.id, s)}
+                />
+              </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Kunde</p>
-              <p className="text-sm text-brand-dark font-medium">{applicant.customer_name || <span className="text-gray-400 font-normal">Nicht zugeordnet</span>}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Kunde</p>
+                <p className="text-sm text-brand-dark font-medium">
+                  {applicant.customer_name || <span className="text-gray-400 font-normal">Nicht zugeordnet</span>}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Eingegangen</p>
+                <p className="text-sm text-brand-dark">
+                  {new Date(applicant.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Eingegangen</p>
-              <p className="text-sm text-brand-dark">
-                {new Date(applicant.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
-              </p>
-            </div>
+
+            {applicant.email && (
+              <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">E-Mail</p>
+                <a href={`mailto:${applicant.email}`}
+                  className="text-sm text-brand-blue hover:underline">{applicant.email}</a>
+              </div>
+            )}
+            {applicant.phone && (
+              <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Telefon</p>
+                <a href={`tel:${applicant.phone}`}
+                  className="text-sm text-brand-blue hover:underline">{applicant.phone}</a>
+              </div>
+            )}
+            {applicant.notes && (
+              <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Notizen</p>
+                <p className="text-sm text-brand-dark whitespace-pre-wrap">{applicant.notes}</p>
+              </div>
+            )}
           </div>
+        )}
 
-          {applicant.email && (
-            <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">E-Mail</p>
-              <a href={`mailto:${applicant.email}`}
-                className="text-sm text-brand-blue hover:underline">{applicant.email}</a>
-            </div>
-          )}
-          {applicant.phone && (
-            <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Telefon</p>
-              <a href={`tel:${applicant.phone}`}
-                className="text-sm text-brand-blue hover:underline">{applicant.phone}</a>
-            </div>
-          )}
-          {applicant.notes && (
-            <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Notizen</p>
-              <p className="text-sm text-brand-dark whitespace-pre-wrap">{applicant.notes}</p>
-            </div>
-          )}
-        </div>
-
-        {adminUser && (
+        {adminUser && !editing && (
           <div className="px-6 pb-6 pt-2 border-t border-gray-100">
             <button
               onClick={() => { onDelete(applicant.id); onClose(); }}
@@ -175,21 +458,25 @@ export function Applicants() {
   const { user } = useAuth()
   const admin = isAdmin(user?.role || '')
   const [applicants, setApplicants] = useState<Applicant[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [tab, setTab] = useState<TabFilter>('alle')
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Applicant | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
   const [webhookToken, setWebhookToken] = useState<string | null>(null)
   const [showWebhook, setShowWebhook] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const load = useCallback(async () => {
-    const [a, s] = await Promise.all([
+    const [a, s, c] = await Promise.all([
       api.get<Applicant[]>('/applicants'),
       api.get<Stats>('/applicants/stats'),
+      api.get<Customer[]>('/customers'),
     ])
     setApplicants(a)
     setStats(s)
+    setCustomers(c)
   }, [])
 
   useEffect(() => {
@@ -215,8 +502,16 @@ export function Applicants() {
     setApplicants(prev => prev.filter(a => a.id !== id))
   }
 
-  const filtered = tab === 'alle' ? applicants : applicants.filter(a => a.status === tab)
+  const handleCreated = (a: Applicant) => {
+    setApplicants(prev => [a, ...prev])
+  }
 
+  const handleUpdated = (updated: Applicant) => {
+    setApplicants(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a))
+    setSelected(updated)
+  }
+
+  const filtered = tab === 'alle' ? applicants : applicants.filter(a => a.status === tab)
   const countFor = (s: Status) => applicants.filter(a => a.status === s).length
 
   const chartData = (() => {
@@ -268,19 +563,33 @@ export function Applicants() {
             <h2 className="text-3xl font-serif text-brand-blue">Bewerber</h2>
             <p className="text-sm text-gray-500 mt-1">Alle eingehenden Bewerbungen im Überblick</p>
           </div>
-          {admin && webhookUrl && (
-            <button
-              onClick={() => setShowWebhook(v => !v)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200
-                text-sm text-brand-dark hover:bg-gray-50 transition-colors font-medium"
-            >
-              <svg className="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              Webhook-URL
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {admin && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-blue text-white
+                  text-sm font-medium hover:bg-brand-navy transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Bewerber anlegen
+              </button>
+            )}
+            {admin && webhookUrl && (
+              <button
+                onClick={() => setShowWebhook(v => !v)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200
+                  text-sm text-brand-dark hover:bg-gray-50 transition-colors font-medium"
+              >
+                <svg className="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Webhook-URL
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Webhook URL Box */}
@@ -349,7 +658,6 @@ export function Applicants() {
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-          {/* Tabs */}
           <div className="flex items-center gap-1 px-4 pt-4 pb-0 border-b border-gray-100 overflow-x-auto">
             {tabs.map(t => (
               <button
@@ -374,7 +682,7 @@ export function Applicants() {
               <p className="text-sm text-gray-400">Noch keine Bewerber in dieser Kategorie</p>
               {admin && (
                 <p className="text-xs text-gray-400 mt-1">
-                  Trage die Webhook-URL in dein Bewerbungsformular ein
+                  Lege einen Bewerber manuell an oder verbinde dein Bewerbungsformular per Webhook
                 </p>
               )}
             </div>
@@ -400,7 +708,9 @@ export function Applicants() {
                     </div>
 
                     <div className="hidden lg:block w-40 flex-shrink-0">
-                      <p className="text-sm text-gray-600 truncate">{a.customer_name || <span className="text-gray-400">Nicht zugeordnet</span>}</p>
+                      <p className="text-sm text-gray-600 truncate">
+                        {a.customer_name || <span className="text-gray-400">Nicht zugeordnet</span>}
+                      </p>
                     </div>
 
                     <div className="hidden sm:block w-28 flex-shrink-0 text-right">
@@ -423,11 +733,21 @@ export function Applicants() {
         </div>
       </div>
 
+      {showCreate && (
+        <CreateModal
+          customers={customers}
+          onClose={() => setShowCreate(false)}
+          onCreated={handleCreated}
+        />
+      )}
+
       <DetailDrawer
         applicant={selected}
+        customers={customers}
         onClose={() => setSelected(null)}
         onStatusChange={handleStatusChange}
         onDelete={handleDelete}
+        onUpdated={handleUpdated}
         isAdmin={admin}
       />
     </Layout>

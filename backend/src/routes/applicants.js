@@ -7,6 +7,33 @@ router.use(requireAuth);
 
 const VALID_STATUS = ['offen', 'kontaktiert', 'eingestellt', 'disqualifiziert'];
 
+router.post('/', async (req, res) => {
+  const { first_name, last_name, email, phone, position, customer_id, notes, status } = req.body;
+  const VALID_STATUS_LOCAL = ['offen', 'kontaktiert', 'eingestellt', 'disqualifiziert'];
+  const finalStatus = status && VALID_STATUS_LOCAL.includes(status) ? status : 'offen';
+  try {
+    const result = await pool.query(
+      `INSERT INTO applicants (customer_id, first_name, last_name, email, phone, position, notes, status, source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'manual')
+       RETURNING *`,
+      [
+        customer_id || null,
+        String(first_name || '').trim().slice(0, 100),
+        String(last_name || '').trim().slice(0, 100),
+        String(email || '').trim().slice(0, 255) || null,
+        String(phone || '').trim().slice(0, 50) || null,
+        String(position || '').trim().slice(0, 255) || null,
+        notes || null,
+        finalStatus,
+      ]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Serverfehler' });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { status, customer_id } = req.query;

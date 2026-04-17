@@ -7,6 +7,7 @@ import { Customers } from './pages/Customers'
 import { CustomerDetail } from './pages/CustomerDetail'
 import { Users } from './pages/Users'
 import { Applicants } from './pages/Applicants'
+import { Brain } from './pages/Brain'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -47,6 +48,9 @@ export default function App() {
         } />
         <Route path="/bewerber" element={
           <RequireAuth><Applicants /></RequireAuth>
+        } />
+        <Route path="/brain" element={
+          <RequireAuth><Brain /></RequireAuth>
         } />
         <Route path="/benutzer" element={
           <RequireAuth><Users /></RequireAuth>

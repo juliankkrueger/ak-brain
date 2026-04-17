@@ -56,6 +56,7 @@ app.use('/api/customers', require('./routes/customers'));
 app.use('/api/kpis', require('./routes/kpis'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/applicants', require('./routes/applicants'));
+app.use('/api/brain', require('./routes/brain'));
 
 // Health check (no auth needed)
 app.get('/health', (_req, res) => {
